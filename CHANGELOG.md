@@ -7,7 +7,9 @@
 - **MINOR**：後方互換のある機能追加（新しいスクリプト・指標・オプションなど）
 - **PATCH**：不具合修正・文書の修正
 
-## [Unreleased]
+## [1.1.0] - 2026-09-25
+
+導入マニュアルの追加、作業ディレクトリの変更（`SHOGI_WORK`）、リリース前の通しテストの必須化。
 
 ### 追加
 - `導入マニュアル.md`：claude.ai のプロジェクトで使う手順と、手元の Linux で使う手順、困ったときの対処
@@ -48,5 +50,6 @@
 ### 修正
 - `metrics.py`：`--name` の値が深さ（depth）の引数として解釈される不具合
 
+[1.1.0]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.1.0
 [1.0.1]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.0.1
 [1.0.0]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.0.0
