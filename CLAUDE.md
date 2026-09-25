@@ -20,3 +20,11 @@
   データは `kifu/`・`docs/` に置く（`.gitignore` 済み）
 - 対戦相手の名前など、公開してはいけない情報をコード・README・コミットメッセージに書かない
 - 使い方（環境構築・コマンド）は `README.md` を参照
+
+## バージョン管理
+
+- セマンティックバージョニング。番号の上げ方は `CHANGELOG.md` 冒頭の基準に従う
+- 利用者に見える変更（スクリプト・profile/・CLAUDE.md・README の手順）を main に入れるときは、
+  `CHANGELOG.md` の先頭に `## [Unreleased]` の節を作って追記しておく
+- リリースは本人の指示があったときだけ行う。手順は `README.md` の「リリース手順」
+  （Unreleased の節をバージョン番号に置き換え、`VERSION` を更新し、`vX.Y.Z` タグをpush）

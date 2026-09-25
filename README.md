@@ -50,3 +50,18 @@ python3 scripts/analyze.py kifu/g01.kif        # 1局解析（リポジトリ直
 - `n_slow_mate` — 遠回りの詰み（詰ませたが最短ではなかった）の回数
 - `long_good_rate` / `short_good_rate` — 長考/短考時の好手率
 - `max_stall_piece` / `max_stall_moves` — 優勢時に最も長く停滞した大駒
+
+## バージョン
+
+現在のバージョンは `VERSION` に記載（[セマンティックバージョニング](https://semver.org/lang/ja/)）。
+変更内容は `CHANGELOG.md`、各版のダウンロードは [Releases](https://github.com/hassan83/shogi_with_AI/releases) を参照。
+
+### リリース手順
+
+1. `CHANGELOG.md` に新しいバージョンの節（`## [X.Y.Z] - YYYY-MM-DD`）を追加する
+2. `VERSION` を同じ番号に更新する
+3. commit して main に push する
+4. タグを付けて push する：`git tag vX.Y.Z && git push origin vX.Y.Z`
+
+タグをpushすると GitHub Actions（`.github/workflows/release.yml`）が、
+`CHANGELOG.md` の該当節を本文にした Release を自動で作成する（タグと `VERSION` が一致しない場合は失敗する）。
