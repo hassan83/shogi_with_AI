@@ -33,6 +33,8 @@
 
 ## 使い方
 
+初めて使う場合は **[導入マニュアル](導入マニュアル.md)** を参照（claude.ai のプロジェクトで使う手順と、手元の Linux で使う手順）。
+
 ```bash
 git clone https://github.com/hassan83/shogi_with_AI.git
 cd shogi_with_AI
