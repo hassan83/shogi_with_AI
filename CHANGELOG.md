@@ -17,6 +17,7 @@
 - `profile/ユーザープロファイル.md`：初回にAIがヒアリングする項目と、Knowledgeへの保存手順
 - `profile/AIキャラ設定.md`：振り返りの相手をするAIの役割・話し方・分析の姿勢
 - `CLAUDE.md`：セッション開始時に必ず行う手順（初回判定とヒアリング）
+- バージョン管理：`VERSION`・`CHANGELOG.md`、Release を作る GitHub Actions ワークフロー
 
 ### 変更
 - `metrics.py`：対局者名の既定値を削除し、`--name` を必須にした
