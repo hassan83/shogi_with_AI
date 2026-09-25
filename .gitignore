@@ -1,0 +1,11 @@
+*.pyc
+__pycache__/
+YaneuraOu/
+*.7z
+hao_extracted/
+docs/棋譜メトリクス.md
+.scan_cache/
+
+# データはclaude.aiプロジェクトのKnowledgeが正本。作業時にここへ置くが、誤ってcommitしないよう除外する
+docs/
+kifu/
