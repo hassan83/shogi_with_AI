@@ -61,7 +61,9 @@ python3 scripts/analyze.py kifu/g01.kif        # 1局解析（リポジトリ直
 1. `CHANGELOG.md` に新しいバージョンの節（`## [X.Y.Z] - YYYY-MM-DD`）を追加する
 2. `VERSION` を同じ番号に更新する
 3. commit して main に push する
-4. タグを付けて push する：`git tag vX.Y.Z && git push origin vX.Y.Z`
+4. GitHub の Actions タブ →「Release」→「Run workflow」（main）を実行する
 
-タグをpushすると GitHub Actions（`.github/workflows/release.yml`）が、
-`CHANGELOG.md` の該当節を本文にした Release を自動で作成する（タグと `VERSION` が一致しない場合は失敗する）。
+ワークフロー（`.github/workflows/release.yml`）が `VERSION` の番号で `vX.Y.Z` タグを作り、
+`CHANGELOG.md` の該当節を本文にした Release を作成する。
+手元から `git tag vX.Y.Z && git push origin vX.Y.Z` でタグをpushしても同じ Release が作られる
+（タグと `VERSION` が一致しない場合は失敗する）。

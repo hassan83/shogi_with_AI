@@ -27,4 +27,5 @@
 - 利用者に見える変更（スクリプト・profile/・CLAUDE.md・README の手順）を main に入れるときは、
   `CHANGELOG.md` の先頭に `## [Unreleased]` の節を作って追記しておく
 - リリースは本人の指示があったときだけ行う。手順は `README.md` の「リリース手順」
-  （Unreleased の節をバージョン番号に置き換え、`VERSION` を更新し、`vX.Y.Z` タグをpush）
+  （Unreleased の節をバージョン番号に置き換え、`VERSION` を更新して main にpushし、
+  Release ワークフローを実行する）

@@ -1,7 +1,11 @@
-# v*.*.* のタグをpushすると、CHANGELOG.md の該当バージョンの節を本文にして GitHub Release を作る
+# GitHub Release を作る。起動方法は2通り：
+#   1. Actions タブから手動実行（workflow_dispatch）… VERSION の番号で vX.Y.Z タグと Release を作る
+#   2. vX.Y.Z タグを push … そのタグで Release を作る（タグと VERSION が一致している必要がある）
+# 本文は CHANGELOG.md の該当バージョンの節。
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*"
@@ -15,18 +19,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: VERSION とタグが一致しているか確認
+      - name: バージョンとタグを決める
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          FILE="$(tr -d '[:space:]' < VERSION)"
-          if [ "$TAG" != "$FILE" ]; then
-            echo "::error::タグ v$TAG と VERSION ($FILE) が一致しません"
+          VER="$(tr -d '[:space:]' < VERSION)"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "${GITHUB_REF_NAME#v}" != "$VER" ]; then
+            echo "::error::タグ $GITHUB_REF_NAME と VERSION ($VER) が一致しません"
             exit 1
           fi
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "TAG=v$VER" >> "$GITHUB_ENV"
 
       - name: CHANGELOG.md から該当バージョンの節を取り出す
         run: |
-          VER="${GITHUB_REF_NAME#v}"
           awk -v ver="$VER" '
             /^## \[/ { if (found) exit; if (index($0, "## [" ver "]") == 1) { found = 1; next } }
             found && !/^\[[^]]+\]: / { print }
@@ -40,4 +44,10 @@ jobs:
       - name: GitHub Release を作成
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG はすでにあります。VERSION と CHANGELOG.md を新しい番号にしてください"
+            exit 1
+          fi
+          # タグがまだなければ、このコミットに作られる
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md
