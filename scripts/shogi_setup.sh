@@ -9,7 +9,16 @@ set -e
 # cd する前にスクリプト自身の場所を絶対パスで確定させる
 SCRIPTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SCRIPTS/.." && pwd)"
-WORK=/home/claude
+# エンジン・評価関数の置き場所（作業ディレクトリ）。決め方は shogi_engine.py と同じ：
+#   1. 環境変数 SHOGI_WORK があればそこ
+#   2. なければ /home/claude（claude.ai のコード実行環境）が存在すればそこ
+#   3. どちらもなければ ~/.shogi_with_AI
+if [ -n "${SHOGI_WORK:-}" ]; then WORK="$SHOGI_WORK"
+elif [ -d /home/claude ]; then WORK=/home/claude
+else WORK="$HOME/.shogi_with_AI"; fi
+mkdir -p "$WORK"
+WORK="$(cd "$WORK" && pwd)"
+echo "作業ディレクトリ: $WORK"
 cd "$WORK"
 
 echo "=== [1/6] 依存パッケージ ==="
@@ -128,4 +137,7 @@ echo "  推奨手の確認  : python3 scripts/best_moves.py kifu/gNN.kif 20 \"37
 echo "  変化の比較    : python3 scripts/compare.py \"<sfen>\" 20 \"P*4d\" \"P*2d\""
 echo ""
 echo "  ※ いずれもリポジトリ直下($REPO)から実行する。"
+if [ -n "${SHOGI_WORK:-}" ]; then
+  echo "     解析時も同じ SHOGI_WORK=$SHOGI_WORK を設定しておくこと（エンジンの場所の判定に使う）。"
+fi
 echo "     metrics.py だけは docs/ から実行すること（出力がcwdに作られるため）。"

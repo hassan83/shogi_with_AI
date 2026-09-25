@@ -6,18 +6,31 @@
   - go を送った直後に quit を送ると探索前にプロセスが死ぬ。必ず bestmove を待つ
   - サンドボックスは 1コアなので taskset で固定すると安定する
 """
-import subprocess, threading, queue, time
+import os, subprocess, threading, queue, time
 
-ENGINE_PATH = "/home/claude/YaneuraOu/source/YaneuraOu-by-gcc"
-ENGINE_CWD  = "/home/claude/YaneuraOu/source"
+
+def _work_dir():
+    """エンジン・評価関数の置き場所。決め方は shogi_setup.sh と同じ：
+    環境変数 SHOGI_WORK → /home/claude（claude.ai のコード実行環境）→ ~/.shogi_with_AI
+    """
+    if os.environ.get("SHOGI_WORK"):
+        return os.path.abspath(os.path.expanduser(os.environ["SHOGI_WORK"]))
+    if os.path.isdir("/home/claude"):
+        return "/home/claude"
+    return os.path.expanduser("~/.shogi_with_AI")
+
+
+WORK_DIR = _work_dir()
+ENGINE_PATH = os.path.join(WORK_DIR, "YaneuraOu/source/YaneuraOu-by-gcc")
+ENGINE_CWD  = os.path.join(WORK_DIR, "YaneuraOu/source")
 
 # 詰将棋専用ビルド (YANEURAOU_MATE_ENGINE)。
 # 通常の NNUE ビルドは "go mate" を解釈せず通常探索にフォールバックするため、
 # その出力の "score mate N" を拾うと連続王手でない強制勝ちまで詰みとして
 # 記録してしまう（2026/09/03に判明。詰み逃し8件・遠回り10件が汚染されていた）。
 # 専用エンジンは "checkmate <手順>" / "checkmate nomate" を返すので確実。
-MATE_ENGINE_PATH = "/home/claude/mate_build/YaneuraOu-by-gcc"
-MATE_ENGINE_CWD  = "/home/claude/mate_build"
+MATE_ENGINE_PATH = os.path.join(WORK_DIR, "mate_build/YaneuraOu-by-gcc")
+MATE_ENGINE_CWD  = os.path.join(WORK_DIR, "mate_build")
 
 
 class Engine:
