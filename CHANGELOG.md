@@ -7,6 +7,15 @@
 - **MINOR**：後方互換のある機能追加（新しいスクリプト・指標・オプションなど）
 - **PATCH**：不具合修正・文書の修正
 
+## [Unreleased]
+
+### 追加
+- `LICENSE`：MIT License
+- `PRIVACY.md`：プライバシーポリシー（本ソフトウェアは利用者の情報を収集・送信しない。環境構築時の通信先、claude.aiに保存する情報の扱い、対戦相手の情報の保護）
+- `THIRD_PARTY_NOTICES.md`：環境構築で取得する YaneuraOu・評価関数・python-shogi などのライセンス
+- `SECURITY.md`：脆弱性・秘密情報の混入の報告方法
+- `CONTRIBUTING.md`：Issue・Pull Request の出し方（棋譜の対局者名を伏せる）
+
 ## [1.0.0] - 2026-09-25
 
 最初の公開版。

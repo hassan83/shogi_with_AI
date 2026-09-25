@@ -67,3 +67,13 @@ python3 scripts/analyze.py kifu/g01.kif        # 1局解析（リポジトリ直
 `CHANGELOG.md` の該当節を本文にした Release を作成する。
 手元から `git tag vX.Y.Z && git push origin vX.Y.Z` でタグをpushしても同じ Release が作られる
 （タグと `VERSION` が一致しない場合は失敗する）。
+
+## ライセンス・ポリシー
+
+- ライセンス：[MIT License](LICENSE)
+- 環境構築で取得する YaneuraOu・評価関数・python-shogi は別ライセンス：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- プライバシーポリシー：[PRIVACY.md](PRIVACY.md)（本ソフトウェアは利用者の情報を収集・送信しない）
+- セキュリティ上の報告：[SECURITY.md](SECURITY.md)
+- 不具合報告・Pull Request：[CONTRIBUTING.md](CONTRIBUTING.md)（棋譜を貼るときは対局者名を伏せる）
+
+本ソフトウェアは無保証で提供される。解析結果はエンジンの評価に基づく参考情報であり、その正確性は保証しない。
