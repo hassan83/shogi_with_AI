@@ -14,4 +14,6 @@
 - `kifu/`・`docs/`・記入済みのユーザープロファイルなど、個人の対局データを含めない
 - 利用者に見える変更は `CHANGELOG.md` の `## [Unreleased]` の節に追記する
 - `scripts/shogi_setup.sh` で環境構築し、変更したスクリプトが動くことを確認してから出す
+- Pull Request では GitHub Actions の Test（環境構築〜解析の通しテスト3パターン）が自動で実行される。全部成功していることを確認する
+- テスト用の棋譜は `tests/fixtures/` に置く。実在の対局・対局者名は使わない
 - 投稿したコードは、本リポジトリの [MIT License](LICENSE) で公開されることに同意したものとする

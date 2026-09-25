@@ -26,6 +26,8 @@
   - `ユーザープロファイル.md` — 最初にAIがヒアリングする項目（実力・目標・取り組みペース）と記入形式。記入済みのものはKnowledgeに保存し、リポジトリには置かない
   - `AIキャラ設定.md` — 振り返りの相手をするAIの役割・話し方・分析の姿勢
 
+- `tests/` — リリース前に必須の通しテスト（`setup_test.sh`）とテスト用棋譜（`fixtures/sample.kif`、実在しない対局）
+
 解析時に置くデータ（リポジトリには含まない）:
 
 - `kifu/` — KIF形式の対局棋譜（`kifu/com/` はCOM戦）
@@ -60,15 +62,29 @@ python3 scripts/analyze.py kifu/g01.kif        # 1局解析（リポジトリ直
 
 ### リリース手順
 
-1. `CHANGELOG.md` に新しいバージョンの節（`## [X.Y.Z] - YYYY-MM-DD`）を追加する
+**リリース前に、環境構築〜解析の通しテストが全部成功していることが必須。**
+テストは `tests/setup_test.sh` で、GitHub Actions（`.github/workflows/test.yml`）が次の3パターンで実行する。
+
+| パターン | 期待する作業ディレクトリ |
+|---|---|
+| `SHOGI_WORK` を設定 | 設定した場所 |
+| 未設定・`/home/claude` あり（claude.ai と同じ） | `/home/claude` |
+| 未設定・`/home/claude` なし（一般の Linux と同じ） | `~/.shogi_with_AI` |
+
+各パターンで、環境構築の完了・エンジンと評価関数の配置・詰将棋エンジンの1手詰め検出・
+テスト用棋譜（`tests/fixtures/sample.kif`、実在しない対局）での `metrics.py`／`analyze.py` の実行を確認する。
+
+1. `CHANGELOG.md` の `## [Unreleased]` を `## [X.Y.Z] - YYYY-MM-DD` に置き換える
 2. `VERSION` を同じ番号に更新する
-3. commit して main に push する
+3. commit して main に push する（push で Test ワークフローが自動実行される）
 4. GitHub の Actions タブ →「Release」→「Run workflow」（main）を実行する
 
-ワークフロー（`.github/workflows/release.yml`）が `VERSION` の番号で `vX.Y.Z` タグを作り、
-`CHANGELOG.md` の該当節を本文にした Release を作成する。
-手元から `git tag vX.Y.Z && git push origin vX.Y.Z` でタグをpushしても同じ Release が作られる
-（タグと `VERSION` が一致しない場合は失敗する）。
+Release ワークフロー（`.github/workflows/release.yml`）は、**まず Test ワークフローの3パターンを実行し、
+全部成功したときだけ** `VERSION` の番号で `vX.Y.Z` タグと Release を作る（本文は `CHANGELOG.md` の該当節）。
+1つでも失敗した場合は Release は作られない。原因を直してからやり直すこと。
+
+- GitHub の画面から手動で Release を作ったり、タグを直接作ったりしない（テストを通らずに公開されてしまうため）
+- 手元でテストする場合：`bash tests/setup_test.sh <期待する作業ディレクトリ>`（例：`bash tests/setup_test.sh ~/.shogi_with_AI`）
 
 ## ライセンス・ポリシー
 

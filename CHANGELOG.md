@@ -11,10 +11,13 @@
 
 ### 追加
 - `導入マニュアル.md`：claude.ai のプロジェクトで使う手順と、手元の Linux で使う手順、困ったときの対処
+- `tests/setup_test.sh`：環境構築〜解析の通しテスト。テスト用棋譜 `tests/fixtures/sample.kif`（エンジン同士の自己対局で生成した実在しない対局）
+- GitHub Actions の Test ワークフロー：main への push・Pull Request のたびに、`SHOGI_WORK` 設定あり／未設定・`/home/claude` あり／未設定・`/home/claude` なしの3パターンで通しテストを実行
 
 ### 変更
 - エンジン・評価関数の作業ディレクトリを環境変数 `SHOGI_WORK` で変えられるようにした（`shogi_setup.sh`・`shogi_engine.py`）。
   未設定時は、`/home/claude` があればそこ（従来どおり）、なければ `~/.shogi_with_AI`
+- Release ワークフロー：通しテスト3パターンが全部成功したときだけ Release を作るようにした
 
 ## [1.0.1] - 2026-09-25
 

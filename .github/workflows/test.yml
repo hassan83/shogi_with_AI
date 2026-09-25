@@ -1,0 +1,57 @@
+# 環境構築〜解析の通しテスト（tests/setup_test.sh）を3パターンで実行する。
+# main への push・Pull Request のたびに実行され、Release ワークフローからも呼ばれる
+# （このテストが全部成功しないと Release は作られない）。
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-test:
+    name: setup-test (${{ matrix.case }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        case:
+          - SHOGI_WORK を設定
+          - 未設定・/home/claude あり
+          - 未設定・/home/claude なし
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ビルドに必要なパッケージ
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full build-essential
+
+      - name: パターンごとの準備
+        run: |
+          case "${{ matrix.case }}" in
+            "SHOGI_WORK を設定")
+              echo "SHOGI_WORK=$RUNNER_TEMP/custom_work" >> "$GITHUB_ENV"
+              echo "EXPECTED=$RUNNER_TEMP/custom_work"   >> "$GITHUB_ENV"
+              ;;
+            "未設定・/home/claude あり")
+              sudo mkdir -p /home/claude
+              sudo chown "$USER" /home/claude
+              echo "EXPECTED=/home/claude" >> "$GITHUB_ENV"
+              ;;
+            "未設定・/home/claude なし")
+              if [ -e /home/claude ]; then echo "::error::/home/claude が存在する"; exit 1; fi
+              echo "EXPECTED=$HOME/.shogi_with_AI" >> "$GITHUB_ENV"
+              ;;
+          esac
+
+      - name: 環境構築〜解析の通しテスト
+        run: bash tests/setup_test.sh "$EXPECTED"

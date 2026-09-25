@@ -2,6 +2,8 @@
 #   1. Actions タブから手動実行（workflow_dispatch）… VERSION の番号で vX.Y.Z タグと Release を作る
 #   2. vX.Y.Z タグを push … そのタグで Release を作る（タグと VERSION が一致している必要がある）
 # 本文は CHANGELOG.md の該当バージョンの節。
+# どちらの場合も、先に Test ワークフロー（環境構築〜解析の通しテスト3パターン）を実行し、
+# 全部成功したときだけ Release を作る。
 name: Release
 
 on:
@@ -14,7 +16,11 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

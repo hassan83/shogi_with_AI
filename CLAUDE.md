@@ -27,5 +27,10 @@
 - 利用者に見える変更（スクリプト・profile/・CLAUDE.md・README の手順）を main に入れるときは、
   `CHANGELOG.md` の先頭に `## [Unreleased]` の節を作って追記しておく
 - リリースは本人の指示があったときだけ行う。手順は `README.md` の「リリース手順」
-  （Unreleased の節をバージョン番号に置き換え、`VERSION` を更新して main にpushし、
-  Release ワークフローを実行する）
+  （Unreleased の節をバージョン番号に置き換え、`VERSION` を更新して main にpushし、Release ワークフローを実行する）
+- **リリース前の通しテスト（3パターン）の成功は必須。** Release ワークフローが Test ワークフローを先に実行し、
+  失敗したら Release を作らない。テストを飛ばす方法（画面からの手動 Release、タグの直接作成、テストの無効化・削除）は取らない
+- テストが失敗したら、原因を直して main に push し、Test が成功してから Release ワークフローを実行し直す。
+  結果（3パターンそれぞれの成否）を本人に報告する
+- `scripts/shogi_setup.sh`・`scripts/shogi_engine.py` の作業ディレクトリの扱いや環境構築の手順を変えたときは、
+  `tests/setup_test.sh` の確認項目も合わせて更新する
