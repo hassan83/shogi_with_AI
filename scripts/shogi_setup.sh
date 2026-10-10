@@ -70,7 +70,17 @@ cd "$WORK"
 if [ ! -f "$WORK/YaneuraOu/source/eval/nn.bin" ]; then
   URL="https://github.com/nodchip/tanuki-/releases/download/tanuki-.halfkp_256x2-32-32.2023-05-08/tanuki-.halfkp_256x2-32-32.2023-05-08.7z"
   curl -sL -o hao.7z "$URL"
-  mkdir -p hao_extracted && 7z x hao.7z -ohao_extracted -y >/dev/null
+  mkdir -p hao_extracted
+  # 7z コマンドが無い環境（apt で p7zip-full が入らない claude.ai の Code タブなど）では
+  # pip で入る py7zr で展開する
+  if command -v 7z >/dev/null 2>&1; then
+    7z x hao.7z -ohao_extracted -y >/dev/null
+  else
+    echo "    7z コマンドが無いため py7zr で展開します"
+    python3 -c "import py7zr" 2>/dev/null \
+      || pip3 install py7zr --break-system-packages >/dev/null 2>&1 || true
+    python3 "$SCRIPTS/extract_7z.py" hao.7z hao_extracted
+  fi
   mkdir -p "$WORK/YaneuraOu/source/eval"
   cp hao_extracted/eval/nn.bin "$WORK/YaneuraOu/source/eval/nn.bin"
 fi
@@ -81,7 +91,7 @@ echo "=== [5/6] 解析スクリプトの確認 ==="
 # リポジトリ側を更新しても埋め込みが古いまま残り、
 # 新しいセッションで古い metrics.py / shogi_engine.py を動かす事故が起きた。
 # そのため生成をやめ、リポジトリのスクリプトをそのまま使う方式に変更した（2026/08/31）。
-REQUIRED="shogi_engine.py ja_notation.py shogiou_conv.py analyze.py best_moves.py compare.py game_classify.py king_track.py metrics.py"
+REQUIRED="extract_7z.py shogi_engine.py ja_notation.py shogiou_conv.py analyze.py best_moves.py compare.py game_classify.py king_track.py metrics.py"
 MISSING=""
 for f in $REQUIRED; do
   [ -f "$SCRIPTS/$f" ] || MISSING="$MISSING $f"

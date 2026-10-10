@@ -10,6 +10,7 @@
 | Háo（tanuki- halfkp_256x2-32-32 2023-05-08） | 評価関数 | https://github.com/nodchip/tanuki- | 配布元の記載に従う |
 | python-shogi | 盤面・指し手の処理（スクリプトから import） | https://pypi.org/project/python-shogi/ | GPL-3.0 |
 | p7zip | 評価関数アーカイブの展開 | 利用者の環境のパッケージ | LGPL ほか（パッケージの記載に従う） |
+| py7zr | 評価関数アーカイブの展開（7z コマンドが無い環境のみ） | https://pypi.org/project/py7zr/ | LGPL-2.1 |
 
 ## 注意
 

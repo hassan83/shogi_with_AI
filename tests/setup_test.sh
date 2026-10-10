@@ -10,6 +10,7 @@
 #    4. 詰将棋エンジンが1手詰めを検出する
 #    5. shogi_engine.py が同じ作業ディレクトリを参照する
 #    6. テスト用棋譜で metrics.py（先手/後手の判定、--name 必須）と analyze.py が動く
+#    7. 7z コマンドが無い環境用の展開（extract_7z.py / py7zr）で、評価関数が同じ内容に展開できる
 #
 #  GitHub Actions（.github/workflows/test.yml）が次の3パターンで実行する：
 #    - SHOGI_WORK を設定した場合
@@ -67,6 +68,16 @@ OUT="$(python3 scripts/analyze.py "$FIXTURE" 6 2>&1)"; RC=$?
 if [ $RC -eq 0 ] && grep -q "差分=" <<<"$OUT"; then ok "analyze.py が動く"
 else fail "analyze.py: 終了コード $RC"; echo "$OUT" | tail -20; fi
 
-rm -rf "$DOCS" "$LOG"
+# 7z が無い環境（claude.ai の Code タブなど）用の展開経路。CI には 7z があり
+# shogi_setup.sh ではこの経路を通らないため、同じアーカイブを py7zr で展開して比べる
+python3 -c "import py7zr" 2>/dev/null || pip3 install py7zr --break-system-packages >/dev/null 2>&1 || pip3 install py7zr >/dev/null 2>&1
+X7="$(mktemp -d)"
+if [ ! -f "$EXPECTED_ABS/hao.7z" ]; then fail "評価関数のアーカイブ（hao.7z）がない"
+elif python3 "$REPO/scripts/extract_7z.py" "$EXPECTED_ABS/hao.7z" "$X7" \
+     && cmp -s "$X7/eval/nn.bin" "$EXPECTED_ABS/YaneuraOu/source/eval/nn.bin"; then
+  ok "7z が無いときの展開（py7zr）でも同じ評価関数になる"
+else fail "py7zr での評価関数の展開に失敗、または内容が違う"; fi
+
+rm -rf "$DOCS" "$LOG" "$X7"
 echo ""
 if [ $FAILED -eq 0 ]; then echo "テスト成功"; else echo "テスト失敗"; exit 1; fi
