@@ -7,6 +7,13 @@
 - **MINOR**：後方互換のある機能追加（新しいスクリプト・指標・オプションなど）
 - **PATCH**：不具合修正・文書の修正
 
+## [Unreleased]
+
+### 修正
+- `shogi_setup.sh`：7z コマンドが無い環境（apt で p7zip-full が入らない claude.ai の Code タブなど）で、
+  評価関数（Háo）の展開が止まっていた。7z が無ければ py7zr（PyPI）で展開するようにした（`scripts/extract_7z.py`）
+- `tests/setup_test.sh`：py7zr での展開でも同じ評価関数になることの確認を追加
+
 ## [1.1.0] - 2026-09-25
 
 導入マニュアルの追加、作業ディレクトリの変更（`SHOGI_WORK`）、リリース前の通しテストの必須化。
