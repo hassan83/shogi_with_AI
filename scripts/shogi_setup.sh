@@ -2,7 +2,9 @@
 # ============================================================
 #  将棋解析環境 セットアップスクリプト
 #  YaneuraOu v9.40 + Háo(tanuki- halfkp_256x2-32-32) + python-shogi
+#  （SHOGI_EVAL=tsuyoura11mini / tsuyoura11micro で つようら王11 + YaneuraOu 開発版）
 #  使い方:  bash shogi_setup.sh
+#           SHOGI_EVAL=tsuyoura11mini bash shogi_setup.sh
 #  所要時間: 3〜6分程度（ビルドとダウンロードのため）
 # ============================================================
 set -e
@@ -25,12 +27,69 @@ echo "=== [1/6] 依存パッケージ ==="
 apt-get install -y p7zip-full >/dev/null 2>&1 || true
 pip3 install python-shogi --break-system-packages >/dev/null 2>&1 || true
 
-echo "=== [2/6] YaneuraOu ソース取得 (v9.40) ==="
+# 評価関数の選択。環境変数 SHOGI_EVAL で選ぶ（未設定なら hao）。
+#   hao             : Háo（tanuki- halfkp_256x2-32-32 2023-05-08）+ YaneuraOu v9.40（従来どおり）
+#   tsuyoura11mini  : つようら王11mini（MIT License）+ YaneuraOu 開発版（SFNN 対応）
+#   tsuyoura11micro : つようら王11micro（MIT License）+ YaneuraOu 開発版（SFNN 対応）
+# つようら王11 は SFNN（進行度つき）の評価関数で、v9.40 では読めない。
+# 対応する YaneuraOu はまだタグが無いので、動作を確認した開発版のコミットに固定する。
+# 評価関数を切り替えたら、もう一度 shogi_setup.sh を実行する（ビルドし直す）。
+SHOGI_EVAL="${SHOGI_EVAL:-hao}"
+YO_DEV_REV=5c8972db7f6a511a212bf2ed43ad2695802edd4a   # 2026-11-10 の master
+case "$SHOGI_EVAL" in
+  hao)
+    YO_REV=v9.40
+    EDITION=YANEURAOU_ENGINE_NNUE
+    EVAL_LABEL="Háo" ;;
+  tsuyoura11mini)
+    YO_REV=$YO_DEV_REV
+    EDITION=YANEURAOU_ENGINE_SFNN_ka2_4096_8_64_progress8
+    EVAL_LABEL="つようら王11mini"
+    EVAL_FILE=TuyouraOu11mini-SFNN_ka2_4096_8_64_progress8-epoch0010-20261003.7z
+    EVAL_SHA256=bd5cd719e000ee3e8c4f158ecd7b56913655569fa73911bd95209f55bbb772ea ;;
+  tsuyoura11micro)
+    YO_REV=$YO_DEV_REV
+    EDITION=YANEURAOU_ENGINE_SFNN_ka2_2048_8_64_progress8
+    EVAL_LABEL="つようら王11micro"
+    EVAL_FILE=TuyouraOu11micro-SFNN_ka2_2048_8_64_progress8-epoch0010-20261001.7z
+    EVAL_SHA256=d1326e9a620c30d40ae553259dd0b6828d2f4e9fca3b6ab9440566579ab0e8c2 ;;
+  *)
+    echo "✗ SHOGI_EVAL=$SHOGI_EVAL は未対応です（hao / tsuyoura11mini / tsuyoura11micro）"
+    exit 1 ;;
+esac
+echo "評価関数: $EVAL_LABEL（SHOGI_EVAL=$SHOGI_EVAL）"
+
+# 7z アーカイブの展開。7z コマンドが無い環境（apt で p7zip-full が入らない
+# claude.ai の Code タブなど）では pip で入る py7zr を使う
+extract_7z() {  # extract_7z <アーカイブ> <展開先>
+  if command -v 7z >/dev/null 2>&1; then
+    7z x "$1" -o"$2" -y >/dev/null
+  else
+    echo "    7z コマンドが無いため py7zr で展開します"
+    python3 -c "import py7zr" 2>/dev/null \
+      || pip3 install py7zr --break-system-packages >/dev/null 2>&1 || true
+    python3 "$SCRIPTS/extract_7z.py" "$1" "$2"
+  fi
+}
+
+SRC="$WORK/YaneuraOu/source"
+BUILD_ID="$YO_REV $EDITION"
+# 以前の版で作った作業ディレクトリには目印が無い。中身は v9.40 + NNUE なので、そうみなす
+if [ -x "$SRC/YaneuraOu-by-gcc" ] && [ ! -f "$SRC/.shogi_build" ]; then
+  echo "v9.40 YANEURAOU_ENGINE_NNUE" > "$SRC/.shogi_build"
+fi
+CUR_BUILD="$(cat "$SRC/.shogi_build" 2>/dev/null || true)"
+
+echo "=== [2/6] YaneuraOu ソース取得 ($YO_REV) ==="
 if [ ! -d YaneuraOu ]; then
   git clone --depth 1 https://github.com/yaneurao/YaneuraOu.git >/dev/null 2>&1
+  CUR_BUILD=""
+fi
+if [ "$CUR_BUILD" != "$BUILD_ID" ]; then
   cd YaneuraOu
-  git fetch --tags --depth 200 >/dev/null 2>&1
-  git checkout v9.40 >/dev/null 2>&1
+  if [ "$YO_REV" = v9.40 ]; then git fetch --depth 1 origin tag v9.40 >/dev/null 2>&1
+  else git fetch --depth 1 origin "$YO_REV" >/dev/null 2>&1; fi
+  git -c advice.detachedHead=false checkout -q "$YO_REV" >/dev/null 2>&1
   cd "$WORK"
 fi
 
@@ -41,10 +100,15 @@ elif echo "$FLAGS" | grep -q avx512f;    then TARGET=AVX512
 elif echo "$FLAGS" | grep -q avx2;       then TARGET=AVX2
 else TARGET=SSE42; fi
 echo "    TARGET_CPU=$TARGET"
-cd "$WORK/YaneuraOu/source"
-if [ ! -x YaneuraOu-by-gcc ]; then
-  make -j"$(nproc)" YANEURAOU_EDITION=YANEURAOU_ENGINE_NNUE \
-       TARGET_CPU=$TARGET COMPILER=g++ normal >/dev/null 2>&1
+cd "$SRC"
+if [ ! -x YaneuraOu-by-gcc ] || [ "$CUR_BUILD" != "$BUILD_ID" ]; then
+  if [ -n "$CUR_BUILD" ]; then echo "    ビルドし直します（$CUR_BUILD → $BUILD_ID）"; fi
+  make clean >/dev/null 2>&1 || true
+  rm -f YaneuraOu-by-gcc
+  # PYTHON は SFNN のアーキテクチャのヘッダを生成するのに使われる
+  make -j"$(nproc)" YANEURAOU_EDITION=$EDITION \
+       TARGET_CPU=$TARGET COMPILER=g++ PYTHON=python3 normal >/dev/null 2>&1
+  echo "$BUILD_ID" > .shogi_build
 fi
 
 echo "=== [3b/6] 詰将棋専用エンジンのビルド ==="
@@ -52,12 +116,17 @@ echo "=== [3b/6] 詰将棋専用エンジンのビルド ==="
 # 連続王手でない強制勝ちまで詰みとして拾ってしまう（2026/09/03に判明）。
 # 連続王手の詰み判定には専用ビルドが必須。
 MATE_DIR="$WORK/mate_build"
-if [ ! -x "$MATE_DIR/YaneuraOu-by-gcc" ]; then
+if [ -x "$MATE_DIR/YaneuraOu-by-gcc" ] && [ ! -f "$MATE_DIR/.shogi_build" ]; then
+  echo "v9.40" > "$MATE_DIR/.shogi_build"
+fi
+if [ ! -x "$MATE_DIR/YaneuraOu-by-gcc" ] || [ "$(cat "$MATE_DIR/.shogi_build")" != "$YO_REV" ]; then
   rm -rf "$MATE_DIR"
-  cp -r "$WORK/YaneuraOu/source" "$MATE_DIR"
-  rm -f "$MATE_DIR/YaneuraOu-by-gcc"
-  ( cd "$MATE_DIR" && make -j"$(nproc)" YANEURAOU_EDITION=YANEURAOU_MATE_ENGINE \
-       TARGET_CPU=$TARGET COMPILER=g++ normal >/dev/null 2>&1 )
+  cp -r "$SRC" "$MATE_DIR"
+  rm -f "$MATE_DIR/YaneuraOu-by-gcc" "$MATE_DIR/.shogi_build"
+  ( cd "$MATE_DIR" && make clean >/dev/null 2>&1; \
+    make -j"$(nproc)" YANEURAOU_EDITION=YANEURAOU_MATE_ENGINE \
+       TARGET_CPU=$TARGET COMPILER=g++ PYTHON=python3 normal >/dev/null 2>&1 ) || true
+  if [ -x "$MATE_DIR/YaneuraOu-by-gcc" ]; then echo "$YO_REV" > "$MATE_DIR/.shogi_build"; fi
 fi
 if [ -x "$MATE_DIR/YaneuraOu-by-gcc" ]; then
   echo "    詰将棋エンジン: OK"
@@ -65,24 +134,42 @@ else
   echo "    ✗ 詰将棋エンジンのビルドに失敗。詰み逃し指標は使えません"
 fi
 
-echo "=== [4/6] 評価関数 Háo 取得 ==="
+echo "=== [4/6] 評価関数 $EVAL_LABEL 取得 ==="
 cd "$WORK"
-if [ ! -f "$WORK/YaneuraOu/source/eval/nn.bin" ]; then
-  URL="https://github.com/nodchip/tanuki-/releases/download/tanuki-.halfkp_256x2-32-32.2023-05-08/tanuki-.halfkp_256x2-32-32.2023-05-08.7z"
-  curl -sL -o hao.7z "$URL"
-  mkdir -p hao_extracted
-  # 7z コマンドが無い環境（apt で p7zip-full が入らない claude.ai の Code タブなど）では
-  # pip で入る py7zr で展開する
-  if command -v 7z >/dev/null 2>&1; then
-    7z x hao.7z -ohao_extracted -y >/dev/null
+EVAL_DIR="$SRC/eval"
+mkdir -p "$EVAL_DIR"
+if [ -f "$EVAL_DIR/nn.bin" ] && [ ! -f "$EVAL_DIR/.shogi_eval" ]; then
+  echo "hao" > "$EVAL_DIR/.shogi_eval"   # 以前の版で入れた評価関数は Háo
+fi
+if [ ! -f "$EVAL_DIR/nn.bin" ] || [ "$(cat "$EVAL_DIR/.shogi_eval")" != "$SHOGI_EVAL" ]; then
+  # 前の評価関数のファイルを残さない（eval_options.txt の FV_SCALE が別の評価関数に効いてしまう）
+  rm -f "$EVAL_DIR/nn.bin" "$EVAL_DIR/progress.bin" "$EVAL_DIR/eval_options.txt" \
+        "$EVAL_DIR/tag.json" "$EVAL_DIR/banner.png" "$EVAL_DIR/.shogi_eval"
+  if [ "$SHOGI_EVAL" = hao ]; then
+    URL="https://github.com/nodchip/tanuki-/releases/download/tanuki-.halfkp_256x2-32-32.2023-05-08/tanuki-.halfkp_256x2-32-32.2023-05-08.7z"
+    curl -sL -o hao.7z "$URL"
+    rm -rf hao_extracted && mkdir -p hao_extracted
+    extract_7z hao.7z hao_extracted
+    cp hao_extracted/eval/nn.bin "$EVAL_DIR/nn.bin"
   else
-    echo "    7z コマンドが無いため py7zr で展開します"
-    python3 -c "import py7zr" 2>/dev/null \
-      || pip3 install py7zr --break-system-packages >/dev/null 2>&1 || true
-    python3 "$SCRIPTS/extract_7z.py" hao.7z hao_extracted
+    # つようら王11：nn.bin・progress.bin・eval_options.txt（FV_SCALE 24）・tag.json・banner.png の5つ。
+    # ダウンロードしたものが配布物と同じか SHA-256 で確かめてから展開する
+    curl -sL -o "$EVAL_FILE" "https://storage.yaneu.com/yaneuraou/$EVAL_FILE"
+    GOT="$(python3 -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' "$EVAL_FILE")"
+    if [ "$GOT" != "$EVAL_SHA256" ]; then
+      echo "    ✗ $EVAL_FILE の SHA-256 が一致しません（ダウンロードの失敗か、配布物が変わった可能性）"
+      echo "      期待: $EVAL_SHA256"
+      echo "      実際: $GOT"
+      exit 1
+    fi
+    X="${SHOGI_EVAL}_extracted"
+    rm -rf "$X" && mkdir -p "$X"
+    extract_7z "$EVAL_FILE" "$X"
+    for f in nn.bin progress.bin eval_options.txt tag.json banner.png; do
+      if [ -f "$X/$f" ]; then cp "$X/$f" "$EVAL_DIR/$f"; fi
+    done
   fi
-  mkdir -p "$WORK/YaneuraOu/source/eval"
-  cp hao_extracted/eval/nn.bin "$WORK/YaneuraOu/source/eval/nn.bin"
+  echo "$SHOGI_EVAL" > "$EVAL_DIR/.shogi_eval"
 fi
 
 echo "=== [5/6] 解析スクリプトの確認 ==="
@@ -137,7 +224,7 @@ then
 fi
 
 echo ""
-echo "セットアップ完了。"
+echo "セットアップ完了。（評価関数: $EVAL_LABEL）"
 echo "  解析は深さ16でスクリーニングし、疑わしい局面を深さ20で再確認する（既定値）。"
 echo ""
 echo "  棋譜解析      : python3 scripts/analyze.py kifu/gNN.kif"

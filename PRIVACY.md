@@ -23,6 +23,7 @@
 |---|---|
 | YaneuraOu（将棋エンジン） | GitHub（github.com/yaneurao/YaneuraOu） |
 | Háo 評価関数 | GitHub（github.com/nodchip/tanuki-） |
+| つようら王11 評価関数（`SHOGI_EVAL` で選んだときのみ） | やねうら王プロジェクト（storage.yaneu.com） |
 | python-shogi | PyPI（pypi.org） |
 | py7zr（7z コマンドが無い環境のみ） | PyPI（pypi.org） |
 | p7zip | 利用者の環境のパッケージリポジトリ（apt） |

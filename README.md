@@ -67,7 +67,7 @@ python3 scripts/analyze.py kifu/g01.kif        # 1局解析（リポジトリ直
 
 | パターン | 期待する作業ディレクトリ |
 |---|---|
-| `SHOGI_WORK` を設定 | 設定した場所 |
+| `SHOGI_WORK` を設定（評価関数は `SHOGI_EVAL=tsuyoura11mini`） | 設定した場所 |
 | 未設定・`/home/claude` あり（claude.ai と同じ） | `/home/claude` |
 | 未設定・`/home/claude` なし（一般の Linux と同じ） | `~/.shogi_with_AI` |
 
@@ -84,7 +84,8 @@ Release ワークフロー（`.github/workflows/release.yml`）は、**まず Te
 1つでも失敗した場合は Release は作られない。原因を直してからやり直すこと。
 
 - GitHub の画面から手動で Release を作ったり、タグを直接作ったりしない（テストを通らずに公開されてしまうため）
-- 手元でテストする場合：`bash tests/setup_test.sh <期待する作業ディレクトリ>`（例：`bash tests/setup_test.sh ~/.shogi_with_AI`）
+- 手元でテストする場合：`bash tests/setup_test.sh <期待する作業ディレクトリ>`（例：`bash tests/setup_test.sh ~/.shogi_with_AI`）。
+  つようら王11 の構築を確かめるときは `SHOGI_EVAL=tsuyoura11mini` を付ける
 
 ## ライセンス・ポリシー
 

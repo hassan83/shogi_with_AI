@@ -7,7 +7,9 @@
 | ソフトウェア | 用途 | 配布元 | ライセンス |
 |---|---|---|---|
 | YaneuraOu v9.40 | 将棋エンジン（通常探索・詰将棋探索） | https://github.com/yaneurao/YaneuraOu | GPL-3.0 |
+| YaneuraOu 開発版（コミット 5c8972d） | つようら王11 を使うときの将棋エンジン（`SHOGI_EVAL=tsuyoura11mini`／`tsuyoura11micro`） | https://github.com/yaneurao/YaneuraOu | GPL-3.0 |
 | Háo（tanuki- halfkp_256x2-32-32 2023-05-08） | 評価関数 | https://github.com/nodchip/tanuki- | 配布元の記載に従う |
+| つようら王11mini／つようら王11micro | 評価関数（`SHOGI_EVAL` で選んだときのみ） | https://storage.yaneu.com/yaneuraou/（告知：https://yaneuraou.yaneu.com/2026/10/14/tsuyou-11-mini-micro-released-under-mit-license/） | MIT（nn.bin・progress.bin） |
 | python-shogi | 盤面・指し手の処理（スクリプトから import） | https://pypi.org/project/python-shogi/ | GPL-3.0 |
 | p7zip | 評価関数アーカイブの展開 | 利用者の環境のパッケージ | LGPL ほか（パッケージの記載に従う） |
 | py7zr | 評価関数アーカイブの展開（7z コマンドが無い環境のみ） | https://pypi.org/project/py7zr/ | LGPL-2.1 |

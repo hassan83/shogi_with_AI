@@ -11,9 +11,12 @@
 #    5. shogi_engine.py が同じ作業ディレクトリを参照する
 #    6. テスト用棋譜で metrics.py（先手/後手の判定、--name 必須）と analyze.py が動く
 #    7. 7z コマンドが無い環境用の展開（extract_7z.py / py7zr）で、評価関数が同じ内容に展開できる
+#    8. 評価関数の選択（SHOGI_EVAL）どおりのファイルがそろっている
+#       - hao           : nn.bin のみ（progress.bin・eval_options.txt が残っていない）
+#       - tsuyoura11*   : nn.bin・progress.bin・eval_options.txt（FV_SCALE 24）。エンジンが進行度ファイルを読み込む
 #
 #  GitHub Actions（.github/workflows/test.yml）が次の3パターンで実行する：
-#    - SHOGI_WORK を設定した場合
+#    - SHOGI_WORK を設定した場合（評価関数は SHOGI_EVAL=tsuyoura11mini）
 #    - 未設定で /home/claude がある場合（claude.ai と同じ）
 #    - 未設定で /home/claude がない場合（~/.shogi_with_AI）
 # ============================================================
@@ -27,7 +30,8 @@ FAILED=0
 ok()   { echo "  ✓ $1"; }
 fail() { echo "  ✗ $1"; FAILED=1; }
 
-echo "=== 環境構築（SHOGI_WORK=${SHOGI_WORK:-未設定} / 期待する作業ディレクトリ=$EXPECTED）==="
+SHOGI_EVAL="${SHOGI_EVAL:-hao}"
+echo "=== 環境構築（SHOGI_WORK=${SHOGI_WORK:-未設定} / SHOGI_EVAL=$SHOGI_EVAL / 期待する作業ディレクトリ=$EXPECTED）==="
 ( cd "$REPO/scripts" && bash shogi_setup.sh ) > "$LOG" 2>&1
 RC=$?
 cat "$LOG"
@@ -72,11 +76,28 @@ else fail "analyze.py: 終了コード $RC"; echo "$OUT" | tail -20; fi
 # shogi_setup.sh ではこの経路を通らないため、同じアーカイブを py7zr で展開して比べる
 python3 -c "import py7zr" 2>/dev/null || pip3 install py7zr --break-system-packages >/dev/null 2>&1 || pip3 install py7zr >/dev/null 2>&1
 X7="$(mktemp -d)"
-if [ ! -f "$EXPECTED_ABS/hao.7z" ]; then fail "評価関数のアーカイブ（hao.7z）がない"
-elif python3 "$REPO/scripts/extract_7z.py" "$EXPECTED_ABS/hao.7z" "$X7" \
-     && cmp -s "$X7/eval/nn.bin" "$EXPECTED_ABS/YaneuraOu/source/eval/nn.bin"; then
+case "$SHOGI_EVAL" in
+  hao)             ARC="$EXPECTED_ABS/hao.7z";                      ARC_NN="eval/nn.bin" ;;
+  tsuyoura11mini)  ARC="$(ls "$EXPECTED_ABS"/TuyouraOu11mini-*.7z 2>/dev/null | head -1)";  ARC_NN="nn.bin" ;;
+  tsuyoura11micro) ARC="$(ls "$EXPECTED_ABS"/TuyouraOu11micro-*.7z 2>/dev/null | head -1)"; ARC_NN="nn.bin" ;;
+esac
+if [ ! -f "$ARC" ]; then fail "評価関数のアーカイブがない（SHOGI_EVAL=$SHOGI_EVAL）"
+elif python3 "$REPO/scripts/extract_7z.py" "$ARC" "$X7" \
+     && cmp -s "$X7/$ARC_NN" "$EXPECTED_ABS/YaneuraOu/source/eval/nn.bin"; then
   ok "7z が無いときの展開（py7zr）でも同じ評価関数になる"
 else fail "py7zr での評価関数の展開に失敗、または内容が違う"; fi
+
+EVAL_DIR="$EXPECTED_ABS/YaneuraOu/source/eval"
+if [ "$SHOGI_EVAL" = hao ]; then
+  if [ ! -e "$EVAL_DIR/progress.bin" ] && [ ! -e "$EVAL_DIR/eval_options.txt" ]; then ok "Háo：つようら王用のファイル（progress.bin・eval_options.txt）が残っていない"
+  else fail "Háo なのに progress.bin か eval_options.txt が残っている"; fi
+else
+  [ -f "$EVAL_DIR/progress.bin" ] && ok "進行度ファイル（progress.bin）がある" || fail "progress.bin がない"
+  grep -qx "FV_SCALE 24" "$EVAL_DIR/eval_options.txt" 2>/dev/null && ok "eval_options.txt が FV_SCALE 24" || fail "eval_options.txt がないか FV_SCALE 24 でない"
+  OUT="$(cd "$EXPECTED_ABS/YaneuraOu/source" && printf 'usi\nisready\nquit\n' | timeout 60 ./YaneuraOu-by-gcc 2>&1)"
+  if grep -q "loading progress file" <<<"$OUT" && grep -q "readyok" <<<"$OUT"; then ok "エンジンが評価関数と進行度ファイルを読み込む"
+  else fail "エンジンが評価関数・進行度ファイルを読み込めない"; echo "$OUT" | tail -10; fi
+fi
 
 rm -rf "$DOCS" "$LOG" "$X7"
 echo ""

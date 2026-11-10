@@ -9,6 +9,14 @@
 
 ## [Unreleased]
 
+### 追加
+- 評価関数に つようら王11mini／つようら王11micro（MIT License）を選べるようにした。
+  `SHOGI_EVAL=tsuyoura11mini`（または `tsuyoura11micro`）を付けて `shogi_setup.sh` を実行する。
+  エンジンは つようら王11（SFNN・進行度つき）に対応した YaneuraOu の開発版（コミット固定）を使い、
+  評価関数は SHA-256 を確かめてから展開する。未指定なら従来どおり Háo + YaneuraOu v9.40
+- `shogi_setup.sh`：評価関数を切り替えて再実行すると、エンジンのビルドと評価関数の配置をやり直す
+- `tests/setup_test.sh`・Test ワークフロー：「SHOGI_WORK を設定」のパターンで つようら王11mini の構築を確認する
+
 ### 修正
 - `shogi_setup.sh`：7z コマンドが無い環境（apt で p7zip-full が入らない claude.ai の Code タブなど）で、
   評価関数（Háo）の展開が止まっていた。7z が無ければ py7zr（PyPI）で展開するようにした（`scripts/extract_7z.py`）

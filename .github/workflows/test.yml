@@ -1,4 +1,5 @@
 # 環境構築〜解析の通しテスト（tests/setup_test.sh）を3パターンで実行する。
+# 「SHOGI_WORK を設定」のパターンは評価関数を つようら王11mini（SHOGI_EVAL）にする。
 # main への push・Pull Request のたびに実行され、Release ワークフローからも呼ばれる
 # （このテストが全部成功しないと Release は作られない）。
 name: Test
@@ -40,6 +41,8 @@ jobs:
           case "${{ matrix.case }}" in
             "SHOGI_WORK を設定")
               echo "SHOGI_WORK=$RUNNER_TEMP/custom_work" >> "$GITHUB_ENV"
+              # このパターンでは評価関数を つようら王11mini にして、SFNN 版の構築も確かめる
+              echo "SHOGI_EVAL=tsuyoura11mini" >> "$GITHUB_ENV"
               echo "EXPECTED=$RUNNER_TEMP/custom_work"   >> "$GITHUB_ENV"
               ;;
             "未設定・/home/claude あり")
