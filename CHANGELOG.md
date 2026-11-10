@@ -7,7 +7,9 @@
 - **MINOR**：後方互換のある機能追加（新しいスクリプト・指標・オプションなど）
 - **PATCH**：不具合修正・文書の修正
 
-## [Unreleased]
+## [1.1.1] - 2026-11-10
+
+7z コマンドが無い環境での環境構築の修正。
 
 ### 修正
 - `shogi_setup.sh`：7z コマンドが無い環境（apt で p7zip-full が入らない claude.ai の Code タブなど）で、
@@ -57,6 +59,7 @@
 ### 修正
 - `metrics.py`：`--name` の値が深さ（depth）の引数として解釈される不具合
 
+[1.1.1]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.1.1
 [1.1.0]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.1.0
 [1.0.1]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.0.1
 [1.0.0]: https://github.com/hassan83/shogi_with_AI/releases/tag/v1.0.0
