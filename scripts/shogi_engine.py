@@ -71,6 +71,13 @@ class Engine:
     def _send(self, cmd):
         self.proc.stdin.write(cmd + "\n"); self.proc.stdin.flush()
 
+    def _drain(self):
+        while True:
+            try:
+                self.q.get_nowait()
+            except queue.Empty:
+                return
+
     def _wait_for(self, token, timeout=30):
         start, lines = time.time(), []
         while time.time() - start < timeout:
@@ -139,7 +146,8 @@ class Engine:
             best[k] = (mv, sc)
         return [(k, best[k][0], best[k][1]) for k in sorted(best)]
 
-    def analyze_multipv(self, sfen=None, moves_usi=None, depth=16, multipv=8, searchmoves=None):
+    def analyze_multipv(self, sfen=None, moves_usi=None, depth=16, multipv=8, searchmoves=None,
+                        timeout=300):
         """候補手を上位 multipv 件まで順位つきで返す。
 
         -> [(順位, 手, 評価値), ...]  評価値は「その局面の手番側の視点」
@@ -152,8 +160,13 @@ class Engine:
         go = f"go depth {depth}"
         if searchmoves:   # 指定した手だけを探索する（USI の searchmoves。行の最後に置く）
             go += " searchmoves " + " ".join(searchmoves)
+        # 前の探索の遅れた出力が残っていると結果がずれるので、送る前に捨てる。
+        # 時間切れのときは stop を送って bestmove を回収してから返す（_wait_bestmove）。
+        # 以前は bestmove を待たずに返していたため、エンジンを使い回すと
+        # 次の局面の結果として前の局面の探索結果を拾ってしまっていた。
+        self._drain()
         self._send(cmd); self._send(go)
-        out = self._parse_multipv(self._wait_for("bestmove", timeout=300))
+        out = self._parse_multipv(self._wait_bestmove(timeout=timeout))
         self._send("setoption name MultiPV value 1")
         return out
 

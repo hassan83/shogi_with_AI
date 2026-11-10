@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""悪手疑いの手を深く調べる（recheck.py と move_rank.py を1回の探索にまとめたもの）。
+"""悪手疑いの手を深く調べる（recheck.py と move_rank.py をまとめて速くしたもの）。
 
-  python3 scripts/deep_check.py kifu/gNN.kif 20 "39,45,49" [候補数]
+  python3 scripts/deep_check.py kifu/gNN.kif 20 "39,45,49" [候補数=8] [順位の深さ=16]
 
-各手数について、その手を指す前の局面を MultiPV（既定8）で1回だけ探索し、次を出す：
-  - 推奨手（1位）と、実際に指した手の順位（候補数位に入らなければ「圏外」）
-  - 差分（実際の手の評価値 − 推奨手の評価値）。同じ探索の中の値どうしで比べる
-  - 上位候補の一覧（順位・手・評価値）
-実際の手が圏外のときだけ、その手に絞って（searchmoves）同じ深さでもう1回探索し、評価値を出す。
+各手数について、その手を指す前の局面で次を出す：
+  - 差分：推奨手と実際の手の評価値の差（深さ20など、指定した深さ）
+      1. 普通に探索して推奨手とその評価値を出す
+      2. 実際の手が推奨手と違えば、その手だけに絞って（searchmoves）同じ深さで探索する
+      同じ局面・同じ深さの探索どうしで比べる
+  - 順位：実際に指した手がエンジンの何番目の候補か（MultiPV。既定は深さ16で上位8手）
+      候補数位に入らなければ「圏外」
 
-recheck.py・move_rank.py より速い理由：
-  - 局面ごとの探索が1回（圏外のときだけ2回）で済む（recheck.py は3回、move_rank.py は1回）
+速くするための工夫：
+  - 上位8手（MultiPV）の探索は重く、深さ20では1局面に5分以上かかることがある。
+    差分は上位1手の探索で出し、順位だけを浅い深さの MultiPV で出す
   - エンジンを起動したまま使い回す（落ちたときだけ起動し直す）
   - 使えるCPUコアをすべて使う（Threads）
 評価値は「その局面の手番側＝指す側の視点」。
@@ -73,6 +76,7 @@ class Prober:
 def main():
     path, depth, targets = sys.argv[1], int(sys.argv[2]), sys.argv[3]
     topn = int(sys.argv[4]) if len(sys.argv) > 4 else 8
+    rank_depth = int(sys.argv[5]) if len(sys.argv) > 5 else min(16, depth)
     moves = load(path)
     pr = Prober(threads=available_cores())
 
@@ -82,26 +86,29 @@ def main():
             b.push_usi(mv)
         sfen = b.sfen()
         actual = moves[t - 1]
+        ja = move_to_japanese(b, actual)
 
-        cands = pr.multipv(sfen=sfen, depth=depth, multipv=topn)
-        rank = next((r for r, mv, _ in cands if mv == actual), None)
-        best = cands[0] if cands else None
-        if rank:
-            sc_actual = cands[rank - 1][2]
+        top = pr.multipv(sfen=sfen, depth=depth, multipv=1)
+        best = top[0] if top else None
+        if best and best[1] == actual:
+            sc_actual = best[2]
         else:
             only = pr.multipv(sfen=sfen, depth=depth, multipv=1, searchmoves=[actual])
             sc_actual = only[0][2] if only else None
 
-        ja = move_to_japanese(b, actual)
+        cands = pr.multipv(sfen=sfen, depth=rank_depth, multipv=topn)
+        rank = next((r for r, mv, _ in cands if mv == actual), None)
         pos = f"{rank}位" if rank else f"圏外（{topn}位以下）"
-        print(f"=== {t}手目  実際: {ja}  → {pos} ===")
+
+        print(f"=== {t}手目  実際: {ja}  → 順位 {pos}（深さ{rank_depth}） ===")
         if best and sc_actual is not None:
             diff = to_cp(sc_actual) - to_cp(best[2])
-            print(f"  推奨  : {move_to_japanese(b, best[1])}  eval={fmt(best[2])}")
-            print(f"  実際  : {ja}  eval={fmt(sc_actual)}")
+            print(f"  推奨  : {move_to_japanese(b, best[1])}  eval={fmt(best[2])}（深さ{depth}）")
+            print(f"  実際  : {ja}  eval={fmt(sc_actual)}（深さ{depth}）")
             print(f"  差分（実際-推奨）= {diff}")
         else:
             print("  ✗ 探索に失敗しました")
+        print(f"  候補（深さ{rank_depth}）:")
         for r, mv, sc in cands:
             mark = " ←実際の手" if mv == actual else ""
             print(f"  {r}. {move_to_japanese(b, mv):14s} {fmt(sc):>7}{mark}")
