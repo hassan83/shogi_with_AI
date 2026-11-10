@@ -5,6 +5,7 @@
   - ハンドシェイクは usi / usinewgame（uci だと position の moves が反映されない）
   - go を送った直後に quit を送ると探索前にプロセスが死ぬ。必ず bestmove を待つ
   - サンドボックスは 1コアなので taskset で固定すると安定する
+    （threads=1 のときだけ。threads>1 では固定しない。固定すると何スレッドでも1コアしか使えない）
 """
 import os, subprocess, threading, queue, time
 
@@ -33,6 +34,14 @@ MATE_ENGINE_PATH = os.path.join(WORK_DIR, "mate_build/YaneuraOu-by-gcc")
 MATE_ENGINE_CWD  = os.path.join(WORK_DIR, "mate_build")
 
 
+def available_cores():
+    """このプロセスが使えるCPUコア数。"""
+    try:
+        return len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        return os.cpu_count() or 1
+
+
 class Engine:
     def __init__(self, threads=1, mate=False):
         """mate=True で詰将棋専用ビルドを起動する。
@@ -43,7 +52,7 @@ class Engine:
         self.is_mate_engine = mate
         path = MATE_ENGINE_PATH if mate else ENGINE_PATH
         cwd = MATE_ENGINE_CWD if mate else ENGINE_CWD
-        cmd = ["taskset", "-c", "0", path]
+        cmd = ["taskset", "-c", "0", path] if threads <= 1 else [path]
         self.proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, bufsize=1, cwd=cwd)
@@ -130,7 +139,7 @@ class Engine:
             best[k] = (mv, sc)
         return [(k, best[k][0], best[k][1]) for k in sorted(best)]
 
-    def analyze_multipv(self, sfen=None, moves_usi=None, depth=16, multipv=8):
+    def analyze_multipv(self, sfen=None, moves_usi=None, depth=16, multipv=8, searchmoves=None):
         """候補手を上位 multipv 件まで順位つきで返す。
 
         -> [(順位, 手, 評価値), ...]  評価値は「その局面の手番側の視点」
@@ -140,7 +149,10 @@ class Engine:
         cmd = f"position sfen {sfen}" if sfen else "position startpos"
         if moves_usi:
             cmd += " moves " + " ".join(moves_usi)
-        self._send(cmd); self._send(f"go depth {depth}")
+        go = f"go depth {depth}"
+        if searchmoves:   # 指定した手だけを探索する（USI の searchmoves。行の最後に置く）
+            go += " searchmoves " + " ".join(searchmoves)
+        self._send(cmd); self._send(go)
         out = self._parse_multipv(self._wait_for("bestmove", timeout=300))
         self._send("setoption name MultiPV value 1")
         return out
